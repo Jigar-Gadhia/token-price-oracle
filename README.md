@@ -1,6 +1,6 @@
 # Historical Token Price Oracle
 
-A web application for querying historical token prices on Ethereum, with a responsive Next.js frontend and an Express.js backend. The backend uses MongoDB for persistent storage, Redis for caching, and BullMQ for asynchronous job processing to fetch and store historical price data. The application supports real-time price queries and scheduled full history fetches, with retry logic for API rate limits.
+A web application for querying historical token prices on Ethereum, featuring a responsive Next.js frontend and an Express.js backend with TypeScript. The backend uses MongoDB for persistent storage, Redis for caching, and BullMQ for asynchronous job processing to fetch and store historical price data. The application supports real-time price queries and scheduled full history fetches, with retry logic for API rate limits. It can be built and run using **Bun.js** or **npm** for package management, with Docker for containerized deployment.
 
 ## Features
 - **Price Query**: Retrieve historical token prices for a given token address, network, and timestamp via `/api/price`.
@@ -10,6 +10,7 @@ A web application for querying historical token prices on Ethereum, with a respo
 - **Persistent Storage**: Stores price data in MongoDB.
 - **Rate Limit Handling**: Implements `p-retry` for robust API calls to external services like Alchemy and CoinGecko.
 - **Dockerized Deployment**: Runs entirely in Docker with separate containers for frontend, backend, Redis, and MongoDB.
+- **Bun.js Support**: Supports Bun.js as a fast alternative to npm for package management and runtime (backend can also use Node.js).
 
 ## Project Structure
 ```
@@ -24,8 +25,11 @@ token-price-oracle/
 │   ├── .dockerignore          # Docker ignore file
 │   ├── Dockerfile             # Backend Docker configuration
 ├── frontend/
-│   ├── components/            # Next.js components (PriceDisplay.tsx, etc.)
-│   ├── pages/                 # Next.js pages
+│   ├── src/
+│   │   ├── components/        # React components (PriceDisplay.tsx, etc.)
+│   │   ├── pages/             # Next.js pages
+│   │   ├── utils/             # Utility functions
+│   ├── public/                # Static assets
 │   ├── package.json           # Frontend dependencies
 │   ├── .dockerignore          # Docker ignore file
 │   ├── Dockerfile             # Frontend Docker configuration
@@ -36,8 +40,9 @@ token-price-oracle/
 
 ## Prerequisites
 - **Docker**: Install Docker Desktop (Windows/Mac) or Docker (Linux).
-- **Node.js**: Version 18.x (for local development, optional).
-- **npm**: Version 8.x or higher (for local development, optional).
+- **Node.js**: Version 18.x (for local development with npm, optional).
+- **Bun.js**: Version 1.2.x or higher (for local development with Bun, optional).
+- **npm**: Version 8.x or higher (if using npm).
 - **Alchemy API Key**: Required for Ethereum blockchain data.
 - **Windows Users**: Ensure WSL 2 is enabled for Docker.
 
@@ -62,7 +67,19 @@ MONGODB_URL=mongodb://mongodb:27017/token-oracle
 FRONTEND_URL=http://localhost:3000
 ```
 
-### 3. Build and Run with Docker
+### 3. Install Bun.js (Optional for Local Development)
+If using Bun.js locally:
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+Verify installation:
+```bash
+bun --version
+```
+
+### 4. Build and Run with Docker
+The backend `Dockerfile` uses **npm** for reliability, but you can modify it to use Bun.js (see [Development Workflow](#development-workflow)).
+
 Build and start all services (frontend, backend, Redis, MongoDB):
 ```bash
 docker-compose up -d --build
@@ -74,7 +91,7 @@ docker ps
 ```
 Expected output: Four containers (`token-price-oracle_frontend-1`, `token-price-oracle_backend-1`, `token-price-oracle_redis-1`, `token-price-oracle_mongodb-1`).
 
-### 4. Check Logs
+### 5. Check Logs
 Backend logs:
 ```bash
 docker logs token-price-oracle-backend-1
@@ -87,7 +104,7 @@ docker logs token-price-oracle-frontend-1
 ```
 Expected: `✓ Ready in X seconds` and `http://localhost:3000`.
 
-### 5. Access the Application
+### 6. Access the Application
 Open the frontend in your browser:
 ```
 http://localhost:3000
@@ -100,97 +117,9 @@ http://localhost:3000
   - Enter a token address (e.g., `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` for WETH).
   - Select network (Ethereum).
   - Enter a Unix timestamp (e.g., `1697059200` for Oct 12, 2023).
-  - View the price and source in `PriceDisplay.tsx`.
+  - View the price and source in `src/components/PriceDisplay.tsx`.
 - **Schedule Full History**:
   - Click "Schedule Full History" to queue a job for fetching historical data.
   - Monitor job progress via the progress bar.
 
-### Backend API
-- **Get Price**:
-  ```bash
-  curl "http://localhost:4000/api/price?tokenAddress=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&network=ethereum&timestamp=1697059200"
-  ```
-  Expected response: `{"value":<price>,"source":"api"}`.
-
-- **Schedule Full History**:
-  ```bash
-  curl -X POST http://localhost:4000/api/schedule -H "Content-Type: application/json" -d '{"tokenAddress":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","network":"ethereum"}'
-  ```
-  Expected response: `{"jobId":"<id>","progress":0}`.
-
-- **Verify Redis Jobs**:
-  ```bash
-  docker exec -it token-price-oracle-redis-1 redis-cli
-  llen bull:price-fetcher:jobs
-  ```
-
-- **Verify MongoDB Data**:
-  ```bash
-  docker exec -it token-price-oracle-mongodb-1 mongosh token-oracle
-  db.prices.find()
-  ```
-
-## Local Development (Optional)
-For development without Docker:
-1. **Backend**:
-   ```bash
-   cd backend
-   npm install
-   npm run start
-   ```
-2. **Frontend**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-## Troubleshooting
-- **Port Conflicts** (Windows):
-  ```powershell
-  netstat -a -n -o | findstr "4000"
-  taskkill /PID <pid> /F
-  ```
-- **Firewall** (Windows):
-  ```powershell
-  netsh advfirewall firewall add rule name="TokenOracleBackend" dir=in action=allow protocol=TCP localport=4000
-  ```
-- **Build Errors**:
-  - Rebuild backend:
-    ```powershell
-    docker-compose build --no-cache backend
-    ```
-  - Check logs:
-    ```powershell
-    docker logs token-price-oracle-backend-1
-    ```
-- **File Case Sensitivity**:
-  - Verify file names match exactly (e.g., `src/index.ts`).
-  - Run:
-    ```powershell
-    dir backend\src
-    dir backend\src\routes
-    dir backend\src\workers
-    ```
-
-## Known Issues and Fixes
-- **Rate Limits**: Handled by `p-retry` in `getHistoricalPrice` for CoinGecko API.
-- **TypeScript Errors**: Fixed by ensuring `typescript` in `dependencies` and correct `tsconfig.json`.
-- **Docker Compilation**: Uses `npm` for reliable dependency installation and execution.
-
-## Technologies
-- **Frontend**: Next.js 15.4.1, React, TypeScript
-- **Backend**: Express.js 5.1.0, TypeScript 5.5.4, MongoDB (mongoose 8.16.3), Redis (ioredis 5.6.1), BullMQ 5.56.4
-- **APIs**: Alchemy SDK 3.6.1, CoinGecko
-- **Containerization**: Docker, Docker Compose
-- **Package Manager**: npm
-
-## Contributing
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/your-feature`).
-3. Commit changes (`git commit -m "Add your feature"`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Open a pull request.
-
-## License
-MIT License. See [LICENSE](LICENSE) for details.
+### Backend
