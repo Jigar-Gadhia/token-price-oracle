@@ -25,9 +25,12 @@ export const usePriceStore = create<PriceState>((set) => ({
   fetchPrice: async ({ tokenAddress, network, timestamp }) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.get("/api/price", {
-        params: { tokenAddress, network, timestamp },
-      });
+      const response = await axios.get(
+        "https://token-price-oracle-backend.onrender.com/api/price",
+        {
+          params: { tokenAddress, network, timestamp },
+        }
+      );
       set({ price: response.data, loading: false });
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -40,10 +43,13 @@ export const usePriceStore = create<PriceState>((set) => ({
   scheduleFullHistory: async ({ tokenAddress, network }) => {
     set({ loading: true, error: null, progress: 0 });
     try {
-      const response = await axios.post("/api/schedule", {
-        tokenAddress,
-        network,
-      });
+      const response = await axios.post(
+        "https://token-price-oracle-backend.onrender.com/api/schedule",
+        {
+          tokenAddress,
+          network,
+        }
+      );
       set({ progress: response.data.progress, loading: false });
     } catch (error: unknown) {
       if (error instanceof Error) {
