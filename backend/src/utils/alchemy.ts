@@ -44,6 +44,7 @@ export async function getHistoricalPrice(
         // Step 1: Get CoinGecko ID from contract address
         const contractUrl = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${tokenAddress}`;
         const contractRes = await axios.get(contractUrl);
+        console.log("response: ", contractRes);
         const coinId = contractRes.data.id;
 
         if (!coinId) throw new Error("CoinGecko ID not found for token");
