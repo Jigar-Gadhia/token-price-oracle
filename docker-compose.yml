@@ -1,0 +1,40 @@
+version: "3"
+services:
+  frontend:
+    build: ./frontend # Looks for frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:4000
+    depends_on:
+      - backend
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+  backend:
+    build: ./backend # Looks for backend/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - ALCHEMY_API_KEY=SMD1QcfLmRH4-9ZM9do5ykYtyCoH7lAQ
+      - REDIS_URL=redis://redis:6379
+      - MONGODB_URL=mongodb+srv://jiggsgadhia:jiggs123@cluster0.fym44rq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - redis
+      - mongodb
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  redis-data:
+  mongo-data:
