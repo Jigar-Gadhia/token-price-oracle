@@ -1,11 +1,10 @@
 import express from "express";
-import Redis from "ioredis";
+import { redis } from "../redis.js"; // ✅ Use shared Upstash instance
 import { getHistoricalPrice } from "../utils/alchemy.js";
 import { interpolatePrice } from "../utils/interpolation.js";
 import PriceModel from "../models/Price.js";
 
 const priceRouter = express.Router();
-const redis = new Redis();
 
 priceRouter.get("/", async (req, res) => {
   const { tokenAddress, network, timestamp } = req.query;

@@ -17,7 +17,7 @@ services:
       - "4000:4000"
     environment:
       - ALCHEMY_API_KEY=SMD1QcfLmRH4-9ZM9do5ykYtyCoH7lAQ
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://red-d1se30juibrs73ab8i6g:6379
       - MONGODB_URL=mongodb+srv://jiggsgadhia:jiggs123@cluster0.fym44rq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - FRONTEND_URL=http://localhost:3000
     depends_on:
