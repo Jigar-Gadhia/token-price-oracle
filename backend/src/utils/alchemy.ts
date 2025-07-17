@@ -3,6 +3,8 @@ import { Alchemy, Network } from "alchemy-sdk";
 import axios from "axios";
 import pRetry from "p-retry";
 
+const CMC_API_KEY = process.env.CMC_API_KEY as string;
+
 const alchemy = new Alchemy({
   apiKey: process.env.ALCHEMY_API_KEY,
   network: Network.ETH_MAINNET, // Configurable
@@ -14,6 +16,16 @@ const networkToPlatform: { [key: string]: string } = {
   polygon: "polygon-pos",
 };
 
+const networkToSlug: Record<string, string> = {
+  ethereum: "ethereum",
+  polygon: "polygon",
+};
+
+const contractPlatformSlug: Record<string, string> = {
+  ethereum: "ethereum",
+  polygon: "polygon",
+};
+
 export async function getHistoricalPrice(
   tokenAddress: string,
   network: string,
@@ -21,28 +33,36 @@ export async function getHistoricalPrice(
 ) {
   return pRetry(
     async () => {
-      try {
-        const date = new Date(timestamp * 1000).toISOString().split("T")[0];
-        const platform = networkToPlatform[network.toLowerCase()];
-        if (!platform) throw new Error(`Unsupported network: ${network}`);
+      const date = new Date(timestamp * 1000).toISOString().split("T")[0];
+      const platform = contractPlatformSlug[network.toLowerCase()];
+      if (!platform) throw new Error("Unsupported network");
 
-        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${tokenAddress}/history?date=${date}&localization=false`;
-        const response = await axios.get(url);
-
-        if (!response.data.market_data?.current_price?.usd) {
-          throw new Error("Price data not available");
+      const response = await axios.get(
+        `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/historical`,
+        {
+          params: {
+            time_start: timestamp,
+            time_end: timestamp,
+            interval: "daily",
+            convert: "USD",
+            address: tokenAddress,
+            network: platform,
+          },
+          headers: {
+            "X-CMC_PRO_API_KEY": CMC_API_KEY,
+          },
         }
+      );
 
-        return response.data.market_data.current_price.usd;
-      } catch (error: any) {
-        if (error.response?.status === 429) {
-          console.warn("Rate limited by CoinGecko. Retrying...");
-          throw error;
-        }
-        throw error;
-      }
+      const usdPrice =
+        response?.data?.data?.quotes?.[0]?.quote?.USD?.close ??
+        response?.data?.data?.quotes?.[0]?.quote?.USD?.price;
+
+      if (!usdPrice) throw new Error("Price data not available");
+
+      return usdPrice;
     },
-    { retries: 3, minTimeout: 2000, factor: 2 }
+    { retries: 3, minTimeout: 1000, factor: 2 }
   );
 }
 
