@@ -21,23 +21,28 @@ export async function getHistoricalPrice(
 ) {
   return pRetry(
     async () => {
-      const date = new Date(timestamp * 1000).toISOString().split("T")[0]; // Convert timestamp to YYYY-MM-DD
-      const platform = networkToPlatform[network.toLowerCase()];
-      if (!platform) {
-        throw new Error(`Unsupported network: ${network}`);
+      try {
+        const date = new Date(timestamp * 1000).toISOString().split("T")[0];
+        const platform = networkToPlatform[network.toLowerCase()];
+        if (!platform) throw new Error(`Unsupported network: ${network}`);
+
+        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${tokenAddress}/history?date=${date}&localization=false`;
+        const response = await axios.get(url);
+
+        if (!response.data.market_data?.current_price?.usd) {
+          throw new Error("Price data not available");
+        }
+
+        return response.data.market_data.current_price.usd;
+      } catch (error: any) {
+        if (error.response?.status === 429) {
+          console.warn("Rate limited by CoinGecko. Retrying...");
+          throw error;
+        }
+        throw error;
       }
-
-      // CoinGecko API for historical price
-      const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${tokenAddress}/history?date=${date}&localization=false`;
-      const response = await axios.get(url);
-
-      if (!response.data.market_data?.current_price?.usd) {
-        throw new Error("Price data not available");
-      }
-
-      return response.data.market_data.current_price.usd;
     },
-    { retries: 3, minTimeout: 1000, factor: 2 }
+    { retries: 3, minTimeout: 2000, factor: 2 }
   );
 }
 
